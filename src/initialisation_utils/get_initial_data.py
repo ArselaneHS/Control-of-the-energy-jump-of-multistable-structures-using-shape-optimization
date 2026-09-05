@@ -63,12 +63,12 @@ def initialize_mesh(N_holes,r_coef=0.9, height=None, checkpoint_file=None):
     bottom = [i + 1 for (i, name) in enumerate(ngmesh.GetRegionNames(codim=1)) if name == "bottom"]
     top = [i + 1 for (i, name) in enumerate(ngmesh.GetRegionNames(codim=1)) if name == "top"]
 
-    if height is not None:
-        mesh = ExtrudedMesh(meshh, height)
     
     if checkpoint_file is not None:
         with CheckpointFile(checkpoint_file, 'r') as afile:
             mesh = afile.load_mesh('firedrake_default')
+    elif height is not None:
+        mesh = ExtrudedMesh(meshh, 5, height)
     else:
         mesh = meshh
 

@@ -1,14 +1,12 @@
 # syntax=docker/dockerfile:1.7
 #
-# Reproducible environment for: Shape-Optimization-of-Energy-Jump
-#
+# Reproducible environment for: Control-of-the-energy-jump-of-multistable-structures-using-shape-optimization
+
 # Build (requires BuildKit, which is default in modern Docker):
 #   DOCKER_BUILDKIT=1 docker build \
 #     --secret id=gh_token,env=GH_TOKEN \
 #     -t shape-opt-energy-jump:latest .
 #
-# (export GH_TOKEN=<your GitHub PAT with repo read access> before building,
-#  or use --secret id=gh_token,src=/path/to/token_file instead)
 #
 # Run:
 #   docker run -it --rm shape-opt-energy-jump:latest
@@ -75,9 +73,7 @@ RUN git clone https://bitbucket.org/pefarrell/defcon.git \
 # for everything above.
 # ---------------------------------------------------------------------------
 WORKDIR /opt
-RUN --mount=type=secret,id=gh_token \
-    git clone https://x-access-token:$(cat /run/secrets/gh_token)@github.com/ArselaneHS/Shape-Optimization-of-Energy-Jump.git project
-# RUN git clone https://github.com/ArselaneHS/Shape-Optimization-of-Energy-Jump.git project
+RUN git clone https://github.com/ArselaneHS/Control-of-the-energy-jump-of-multistable-structures-using-shape-optimization.git project
 
 WORKDIR /opt/project
 
