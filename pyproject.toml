@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[project]
+name = "energy-jump-shape-opt"  
+version = "0.1.0"
+requires-python = ">=3.12.3"
+readme = "README.md"
+dependencies = [
+    "numpy>=2.3.4",
+    "matplotlib>=3.10.7",
+    "pandas>=3.0.5",
+    "Pillow>=12.0.0",
+
+    "firedrake>=2025.10.2",
+    "pyadjoint>=2019.1.2",
+    "fireshape>=0.0.1",
+    "pyroltrilinos>=0.5.6",
+    "netgen>=6.2.2506",
+    "defcon @ git+https://bitbucket.org/pefarrell/defcon.git@12ce92e3112f91806740f4eed74b9f52cfbdb298",
+
+    "petsc4py>=3.24.0",
+    "slepc4py>=3.24.0",
+    "VTK>=9.5.2",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[project.urls]
+"External Dependencies" = "ParaView / pvpython (installed via system apt or conda)"
+"ParaView Setup Guide" = "https://www.paraview.org/download/"
+# NOTE: ParaView/pvpython cannot be installed via PyPI. 
+# Ensure ParaView is installed via system packages (`apt install paraview`) 
+# or Conda (`conda install -c conda-forge paraview`).

@@ -1,0 +1,2 @@
+total_vertical_displacement=-2.740474569716138e-01
+pointeval=-1.258282035465591e-03
