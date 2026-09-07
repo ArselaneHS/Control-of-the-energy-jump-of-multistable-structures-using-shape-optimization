@@ -1,0 +1,18 @@
+# Git metadata: 114 MB, and nothing at runtime reads it.
+# (paths.py resolves the repo root from __file__, and the shell scripts from
+# BASH_SOURCE, so no code path shells out to git in the project tree.)
+.git
+.gitattributes
+
+# Python caches
+**/__pycache__
+**/*.pyc
+
+# Generated at run time. Shipping stale runs would also poison the
+# "most recently modified run" fallback in src/utils/paraview_save.py.
+data/results
+data/paraview_saves
+
+
+# NOTE: data/initial_solutions is deliberately NOT excluded — every run loads
+# its starting checkpoints from there.

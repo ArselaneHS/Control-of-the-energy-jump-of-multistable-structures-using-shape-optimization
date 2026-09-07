@@ -2,10 +2,8 @@
 #
 # Reproducible environment for: Control-of-the-energy-jump-of-multistable-structures-using-shape-optimization
 
-# Build (requires BuildKit, which is default in modern Docker):
-#   DOCKER_BUILDKIT=1 docker build \
-#     --secret id=gh_token,env=GH_TOKEN \
-#     -t shape-opt-energy-jump:latest .
+# Build (from the repository root):
+#   docker build -t shape-opt-energy-jump:latest .
 #
 #
 # Run:
@@ -68,14 +66,13 @@ RUN git clone https://bitbucket.org/pefarrell/defcon.git \
     && git -C defcon checkout ${DEFCON_COMMIT} \
     && pip install --no-cache-dir ./defcon
 # ---------------------------------------------------------------------------
-# Project repo (private -> use a BuildKit secret so the token never lands in
-# an image layer). Placed last so code changes don't invalidate the cache
-# for everything above.
+# Project source, copied from the build context so the image matches the tree
+# it was built from rather than tracking a moving remote HEAD. Placed last so
+# code changes don't invalidate the cache for everything above.
 # ---------------------------------------------------------------------------
-WORKDIR /opt
-RUN git clone https://github.com/ArselaneHS/Control-of-the-energy-jump-of-multistable-structures-using-shape-optimization.git project
-
 WORKDIR /opt/project
+COPY . .
+
 
 # Step 1: Filter out firedrake
 RUN grep -v -i -E 'firedrake|netgen' requirements.txt > /tmp/reqs.txt

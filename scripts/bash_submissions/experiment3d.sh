@@ -7,8 +7,6 @@ cd "$REPO_ROOT"
 export PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 
 
-python3 -m src.utils.fspatch1
-
 objective_params="{
     \"number of holes\": 4,
     \"radius\": 0.85, 
@@ -59,7 +57,3 @@ optimization_params="{
 }"
 python3 -m src.experiment2 "$objective_params" "$optimization_params"
 #############################################################################################
-
-
-
-python3 -m src.utils.fspatch2

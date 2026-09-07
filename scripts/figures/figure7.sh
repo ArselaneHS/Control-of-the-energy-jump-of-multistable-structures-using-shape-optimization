@@ -28,13 +28,18 @@ optimization_params="{
     \"max_its\": 15,
     \"grad_tol\": 1e-8,
 }"
-python3 -m src.experiment4 "$objective_params" "$optimization_params"
+TS1="$(date +%Y%m%d_%H%M%S)"
+RESULTS_DIR_1="$REPO_ROOT/data/results/experiment_$TS1"
+SAVE_DIR_1="$REPO_ROOT/data/paraview_saves/experiment_$TS1"
+python3 -m src.experiment4 "$objective_params" "$optimization_params" "$RESULTS_DIR_1"
 
 rm -f /tmp/.X99-lock /tmp/.X11-unix/X99
 Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
 XVFB_PID=$!
 export DISPLAY=:99
-pvpython  $REPO_ROOT/src/utils/paraview_save.py 
+pvpython "$REPO_ROOT/src/utils/paraview_save.py" \
+  --pvd_path "$RESULTS_DIR_1/solution/u.pvd" \
+  --save_path "$SAVE_DIR_1"
 kill $XVFB_PID 2>/dev/null || true
 # ##############################################################################################
 
@@ -61,13 +66,18 @@ optimization_params="{
     \"max_its\": 15,
     \"grad_tol\": 1e-4,
 }"
-python3 -m src.experiment4 "$objective_params" "$optimization_params"
+TS2="$(date +%Y%m%d_%H%M%S)"
+RESULTS_DIR_2="$REPO_ROOT/data/results/experiment_$TS2"
+SAVE_DIR_2="$REPO_ROOT/data/paraview_saves/experiment_$TS2"
+python3 -m src.experiment4 "$objective_params" "$optimization_params" "$RESULTS_DIR_2"
 
 rm -f /tmp/.X99-lock /tmp/.X11-unix/X99
 Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
 XVFB_PID=$!
 export DISPLAY=:99
-pvpython  $REPO_ROOT/src/utils/paraview_save.py 
+pvpython "$REPO_ROOT/src/utils/paraview_save.py" \
+  --pvd_path "$RESULTS_DIR_2/solution/u.pvd" \
+  --save_path "$SAVE_DIR_2"
 kill $XVFB_PID 2>/dev/null || true
 # ############################################################################################
 

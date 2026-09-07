@@ -48,20 +48,21 @@ The remaining Python dependencies are declared in [pyproject.toml](pyproject.tom
 
 ### 2.2 Build and run the Docker image (recommended)
 
-The [Dockerfile](Dockerfile) pins the base image by digest, checks out the exact Firedrake tag, installs defcon and ParaView, clones this repository into `/opt/project`, and installs it in editable mode.
+The [Dockerfile](Dockerfile) pins the base image by digest, checks out the exact Firedrake tag, installs defcon and ParaView, copies the folder into `/opt/project`, and installs it in editable mode.
 
-The repository is cloned over HTTPS using a BuildKit secret, so a GitHub token with read access is required at build time and never lands in an image layer:
 
 ```bash
-export GH_TOKEN=<your GitHub PAT with repo read access>
 DOCKER_BUILDKIT=1 docker build \
-  --secret id=gh_token,env=GH_TOKEN \
   -t shape-opt-energy-jump:latest .
 
 docker run -it --rm shape-opt-energy-jump:latest
 ```
 
-Inside the container the project lives at `/opt/project`, which is also the working directory. 
+Inside the container the project lives at `/opt/project`, which is also the working directory.
+
+The build context is about 300 MB, almost all of it the checkpoints in
+`data/initial_solutions`; [.dockerignore](.dockerignore) keeps `.git` and any
+local `data/results` out.
 
 ### 2.3 Shell environment required by every entry point
 
@@ -105,7 +106,7 @@ It prints the initial objective value and energy jumps, then the path of the res
 
 ### 2.5 Expected outputs
 
-Runs are deterministic given the same environment, the results directory name is a wall-clock timestamp (see [§3](#3-repository-structure-and-path-handling)) and the ParaView helpers default to the *most recently modified* results directory. Interleave runs and snapshot steps carefully, or pass explicit paths.
+Runs are deterministic given the same environment, the results directory name is a wall-clock timestamp (see [§3](#3-repository-structure-and-path-handling)).
 
 Absolute objective values depend on the Firedrake/PETSc build; the quantities reported in the paper are ratios ($\Delta\mathcal{E}/\Delta\mathcal{E}^0$ against the target $r$), which are robust to that. 
 
@@ -124,23 +125,26 @@ Absolute objective values depend on the Firedrake/PETSc build; the quantities re
 │   └── bash_submissions/       # the same runs grouped by experiment driver
 ├── src/
 │   ├── base.py                 # BaseExperiment: the common workflow
-│   ├── experiment1..5.py       # entry points
+│   ├── experiment1..4.py       # entry points
 │   ├── Objective.py            # objective functional and factory
 │   ├── Optimization.py         # ROL optimization loop
 │   ├── initialisation_utils/   # mesh generation, deflated continuation, 3-D extrusion
-│   └── utils/                  # paths, plotting, ROL output parsing, ParaView, patches
+│   └── utils/                  # paths, plotting, ROL output parsing, ParaView...
 ├── Dockerfile
 ├── pyproject.toml
 └── README.md
 ```
 
-All data and results paths are resolved relative to the repository root by [src/utils/paths.py](src/utils/paths.py), which exposes `repo_root()`, `data_dir()`, `results_base_dir()`, `resolve_path()`, `ensure_dir()`, `make_results_path_from_objective()` and `make_results_directory()`, together with the checkpoint helpers `get_solutions_paths()` and `get_optimum_solutions_paths()`. A relative `"path"` entry in `objective_params` is resolved against the repository root, so runs never depend on the current working directory.
+All data and results paths are resolved relative to the repository root by [src/utils/paths.py](src/utils/paths.py), which exposes `repo_root()`, `data_dir()`, `results_base_dir()`, `resolve_path()`, `ensure_dir()`, `make_results_path_from_objective()` and `make_results_directory()`. A relative `"path"` entry in `objective_params` is resolved against the repository root, so runs never depend on the current working directory.
+
+Within each `initial_solutions/` directory: `solution-<k>.h5` is a Firedrake checkpoint (mesh plus the CG2 displacement field `solution`) of defcon branch `k` at load $\lambda_0 = 0.1$; `eigenfunctions-<k>.h5` holds the eigenmodes from defcon's stability computation on that branch, and `functional-<k>.txt` the two defcon functionals (mean vertical displacement and a point value). Only the three `solution-*.h5` files listed in §6.4 are read by the experiments; the remaining files are provided as the full continuation output.
 
 Each run creates a **flat, timestamped** directory:
 
 ```text
 data/results/experiment_<YYYYmmdd_HHMMSS>/
 ```
+
 
 ## 4. Core code modules
 
@@ -153,7 +157,6 @@ The scripts directly under [src/](src) are the user-facing entry points. They di
 - [src/experiment2.py](src/experiment2.py): command-line driven single optimization at one target ratio.
 - [src/experiment3.py](src/experiment3.py): independent runs across a list of target ratios, plus a combined cross-ratio figure.
 - [src/experiment4.py](src/experiment4.py): continuation across a list of target ratios, reusing one objective instance (warm start).
-- [src/experiment5.py](src/experiment5.py): per-ratio continuation variant; the least maintained entry point.
 
 ### 4.2 Objective and optimization
 
@@ -161,7 +164,7 @@ The scripts directly under [src/](src) are the user-facing entry points. They di
   - `EnergyJumpControl(PDEconstrainedObjective)` — solves the nonlinear elasticity problem for every branch and evaluates the gap-matching objective plus a `coef_pen`-weighted penalty that prevents branches from collapsing onto one another. Each Newton solve is seeded from the previous domain's solution, which is what keeps the branches identified across shape updates.
   - `make_objective()` — loads the checkpoints, builds the mesh and control space, and returns `(J, q, Q)`.
   - `save_objective_params()` / `make_results_directory()` — write the run record and create the output folder.
-- [src/Optimization.py](src/Optimization.py): `ROL_optimization()` runs a ROL trust-region method (Dogleg subproblem, limited-memory BFGS secant) and records the trust-region flags. `optimization_loop()` is a hand-rolled gradient-descent alternative retained for reference and is not on the default path.
+- [src/Optimization.py](src/Optimization.py): `ROL_optimization()` runs a ROL trust-region method (Dogleg subproblem, limited-memory BFGS secant) and records the trust-region flags.
 
 ### 4.3 Initialisation and data generation
 
@@ -204,13 +207,11 @@ Notes on the table:
 - [scripts/bash_submissions](scripts/bash_submissions) contains the same runs grouped by experiment driver rather than by figure; the figure scripts are the entry point to prefer.
 - To inspect the precise parameters and configurations used to produce a figure, refer to its corresponding file `./scripts/figures/figure*.sh`.
 
-Snapshots can also be produced by hand for any completed run. With no arguments, `paraview_save.py` picks the most recently modified directory under `data/results` and writes into `data/paraview_saves/<run_directory_name>/`:
-
 ```bash
 pvpython src/utils/paraview_save.py \
   --pvd_path data/results/experiment_<ts>/solution/u.pvd \
   --save_path data/paraview_saves/my_run \
-  [--is_3d True]
+  [--is_3d]
 ```
 
 ## 6. Running your own experiments
@@ -292,7 +293,23 @@ and
 ```bash
 python3 -m src.initialisation_utils.defcon_hyperelasticity -n 4 --r-coef 0.85
 ```
-Please note that running a defcon-continuation analysis takes a considerable time. Also, the checkpoints saved ( `solution-2.h5`, `solution-0.h5`, `solution-4.h5`...) are defcon branch indices. Deflated continuation does not guarantee stable branch numbering across runs or library versions, so a reader who regenerates the data must visually inspect the solutions to identify the ones corresponding to our initial data. 
+
+Running a deflated-continuation analysis takes a considerable time. The output files are named after defcon's branch index (`solution-<k>.h5`), and deflated continuation does not guarantee stable branch numbering across runs or library versions, so a regenerated data set will in general use different indices. The three branches used in the paper are therefore identified by their physical character rather than by index:
+
+| role | physical branch | `n2_2d` (N=2) | `n4_2d` (N=4) |
+| --- | --- | --- | --- |
+| $u_2$ | mirror-symmetric (about $x=\tfrac12$) unbuckled configuration; the highest-energy branch, through which the snap-through passes | `solution-0.h5`, $\mathcal{E}=1465.35$ | `solution-35.h5`, $\mathcal{E}=1701.97$ |
+| $u_1$ | one of the two mirror-image buckled configurations (lowest energy) | `solution-2.h5`, $\mathcal{E}=875.22$, $\bar u_x=+1.86\times10^{-2}$ | `solution-0.h5`, $\mathcal{E}=1299.01$, $M_1=-6.1\times10^{-4}$ |
+| $u_3$ | the mirror image of $u_1$: $u_3(x,y)=(-u_{1,x},u_{1,y})(1-x,y)$ | `solution-4.h5`, $\mathcal{E}=876.51$, $\bar u_x=-1.86\times10^{-2}$ | `solution-6.h5`, $\mathcal{E}=1298.72$, $M_1=+5.6\times10^{-4}$ |
+
+$\mathcal{E}=\int_\Omega \psi(u)-B\cdot u$ is the total potential energy at $\lambda_0=0.1$ (the quantity printed as the initial energies at start-up), $\bar u_x$ the mean horizontal displacement and $M_1=\int_\Omega u_x\,(y-\tfrac12)$  the first moment; the last two are handedness indicators that flip sign under $x\mapsto 1-x$ and vanish for a symmetric branch (for N=4 the buckled pattern has no net lateral shift, hence the moment). To re-identify branches in a  regenerated set, take the mirror-symmetric branch of highest energy as $u_2$ and the two lowest-energy branches, which are mirror images of each other, as $u_1$ and $u_3$;
+
+```bash
+python3 -m src.utils.identify_branches data/initial_solutions/n2_2d
+```
+
+prints these quantities for every checkpoint in a directory. Since $u_1$ and $u_3$ are related by reflection, swapping them reproduces the optimized shapes up to the same reflection. The 3-D checkpoints (`n2_3d`, `n4_3d`) keep the index of the 2-D file they were lifted from.
+
 
 The 3-D initial data (`n2_3d`, `n4_3d`) is produced from the 2-D checkpoints by [src/initialisation_utils/Hyperelasticity3d.py](src/initialisation_utils/Hyperelasticity3d.py), which solves on an extruded mesh using the 2-D solutions as initial guesses. To re-generate the 3-D initial data (from the 2-D solutions), run:
 ```bash

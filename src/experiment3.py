@@ -12,13 +12,14 @@ def main():
 
     objective_params = eval(sys.argv[1])
     optimization_params = eval(sys.argv[2])
-
+    results_dir = sys.argv[3] if len(sys.argv) > 3 else None
+    
     percentages = objective_params.get("percentage", [])
     if not isinstance(percentages, (list, tuple)):
         percentages = [percentages]
 
     results_base = BaseExperiment(objective_params, optimization_params, NE=3)
-    sweep_results_path = results_base.prepare_results_dir(clean=True)
+    sweep_results_path = results_base.prepare_results_dir(clean=True, parent_dir=results_dir)
 
     # create a figure space if desired (keeps previous plotting behavior)
     fig, ax = make_consistent_figure(1 + len(objective_params.get("i1", [])))

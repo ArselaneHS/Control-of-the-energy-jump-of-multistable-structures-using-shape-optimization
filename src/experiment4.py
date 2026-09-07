@@ -10,6 +10,7 @@ def main():
 
     objective_params = eval(sys.argv[1])
     optimization_params = eval(sys.argv[2])
+    results_dir = sys.argv[3] if len(sys.argv) > 3 else None
 
     percentages = objective_params.get("percentage", [])
     if not isinstance(percentages, (list, tuple)):
@@ -17,7 +18,7 @@ def main():
 
     # Prepare top-level results directory
     base_runner = BaseExperiment(objective_params, optimization_params, NE=4)
-    results_path = base_runner.prepare_results_dir(clean=True)
+    base_runner.prepare_results_dir(clean=True, parent_dir=results_dir)
 
     # single objective instance reused across percentages (warm-start behavior)
     base_runner.build_objective()

@@ -15,17 +15,23 @@ dependencies = [
     "matplotlib>=3.10.7",
     "pandas>=3.0.5",
     "Pillow>=12.0.0",
-
-    "firedrake>=2025.10.2",
-    "pyadjoint>=2019.1.2",
-    "fireshape>=0.0.1",
-    "pyroltrilinos>=0.5.6",
-    "netgen>=6.2.2506",
-    "defcon @ git+https://bitbucket.org/pefarrell/defcon.git@12ce92e3112f91806740f4eed74b9f52cfbdb298",
-
-    "petsc4py>=3.24.0",
-    "slepc4py>=3.24.0",
     "VTK>=9.5.2",
+]
+
+# Environment prerequisites. These cannot be resolved from PyPI against an
+# arbitrary environment: petsc4py/slepc4py must match the PETSc build Firedrake
+# was compiled against, and fireshape is not on PyPI. The Docker image provides
+# all of them; this group documents the versions used for the paper.
+[project.optional-dependencies]
+env = [
+    "firedrake==2025.10.2",
+    "pyadjoint-ad==2025.10.0",
+    "fireshape @ git+https://github.com/fireshape/fireshape.git@ca814304086f2eea8c8584eec83416af6f03c235",
+    "pyroltrilinos==0.5.6",
+    "netgen-mesher==6.2.2506",
+    "petsc4py==3.24.0",
+    "slepc4py==3.24.0",
+    "defcon @ git+https://bitbucket.org/pefarrell/defcon.git@12ce92e3112f91806740f4eed74b9f52cfbdb298",
 ]
 
 [tool.hatch.metadata]

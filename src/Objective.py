@@ -2,6 +2,7 @@ from firedrake import *
 from fireshape import *
 from pyadjoint.adjfloat import AdjFloat
 import firedrake.adjoint as fda
+from src.utils.control_space import CG1ControlSpace
 
 import shutil
 import os
@@ -131,43 +132,13 @@ class EnergyJumpControl(PDEconstrainedObjective):
         else:
             return derivative(self.energy(u)*dx(metadata={"quadrature_degree": self.qdegree}), u, v)
 
-
-
-
     def psi(self, u):
         """ Strain energy density (compressible neo-Hookean model). """
-
-        # Kinematics
-        I = Identity(self.dim)        # Identity tensor matching the spatial dimension
-        F = I + grad(u)             # Deformation gradient
-        C = F.T*F                   # Right Cauchy-Green tensor
-
-        # Invariants of deformation tensors
-        Ic = tr(C)
-        J  = det(F)
-
-        # Elasticity parameters
-        E, nu = 1000000.0, 0.3
-        mu, lmbda_cte = Constant(E/(2*(1 + nu))), Constant(E*nu/((1 + nu)*(1 - 2*nu)))
-
-        # Stored strain energy density (compressible neo-Hookean model)
-        psi = (mu/2)*(Ic - self.dim) - mu*ln(J) + (lmbda_cte/2)*(ln(J))**2
-
-        return psi
+        return strain_energy_density(u, self.dim)
 
     def energy(self, u):
-        """ Energy function. """
-        # Body force per unit volume
-        if self.dim==2:
-            B   = Constant((0.0, -1000))
-        else:
-            B   = Constant((0.0, -1000, 0.0))
-
-        psi=self.psi(u)
-        # Total potential energy
-        Energy = psi- dot(B, u)
-
-        return Energy
+        """ Total potential energy density. """
+        return total_potential_energy(u, self.dim)
     
     def solver_parameters(self):
         solver_parameters = {
@@ -309,9 +280,9 @@ def make_objective(
     objective_params["bottom"] = bottom
     objective_params["top"] = top
 
-    Q = FeControlSpace(mesh)
-    q = ControlVector(Q, H1InnerProduct(Q, fixed_bids=top + bottom))
     dim = 2 if objective_params.get("height", None) is None else 3
+    Q = CG1ControlSpace(mesh) if dim == 3 else FeControlSpace(mesh)
+    q = ControlVector(Q, H1InnerProduct(Q, fixed_bids=top + bottom))
 
     J = EnergyJumpControl(
         Q,
@@ -322,3 +293,18 @@ def make_objective(
         dim=dim,
     )
     return J, q, Q
+
+def strain_energy_density(u, dim):
+    I = Identity(dim)           # Identity tensor matching the spatial dimension
+    F = I + grad(u)             # Deformation gradient
+    C = F.T*F                   # Right Cauchy-Green tensor
+    Ic = tr(C)
+    J  = det(F)
+    E, nu = 1000000.0, 0.3
+    mu, lmbda_cte = Constant(E/(2*(1 + nu))), Constant(E*nu/((1 + nu)*(1 - 2*nu)))
+    return (mu/2)*(Ic - dim) - mu*ln(J) + (lmbda_cte/2)*(ln(J))**2
+
+
+def total_potential_energy(u, dim):
+    B = Constant((0.0, -1000)) if dim == 2 else Constant((0.0, -1000, 0.0))
+    return strain_energy_density(u, dim) - dot(B, u)

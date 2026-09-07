@@ -27,13 +27,18 @@ optimization_params="{
     \"max_its\": 0,
     \"grad_tol\": 1e-8
 }"
-python3 -m src.experiment2 "$objective_params" "$optimization_params"
+TS="$(date +%Y%m%d_%H%M%S)"
+RESULTS_DIR="$REPO_ROOT/data/results/experiment_$TS"
+SAVE_DIR="$REPO_ROOT/data/paraview_saves/experiment_$TS"
+python3 -m src.experiment2 "$objective_params" "$optimization_params" "$RESULTS_DIR"
 
 rm -f /tmp/.X99-lock /tmp/.X11-unix/X99
 Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
 XVFB_PID=$!
 export DISPLAY=:99
-pvpython  $REPO_ROOT/src/utils/paraview_save.py 
+pvpython "$REPO_ROOT/src/utils/paraview_save.py" \
+  --pvd_path "$RESULTS_DIR/solution/u.pvd" \
+  --save_path "$SAVE_DIR"
 kill $XVFB_PID 2>/dev/null || true
 
 

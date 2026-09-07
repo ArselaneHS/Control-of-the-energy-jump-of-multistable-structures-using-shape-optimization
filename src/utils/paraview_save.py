@@ -530,7 +530,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Save Paraview screenshots with auto-cropping.')
     parser.add_argument('--pvd_path', type=str, required=False, default=None, help='Path to the .pvd file to load in Paraview.')
     parser.add_argument('--save_path', type=str, required=False, default=None, help='Directory where the screenshots will be saved.')
-    parser.add_argument('--is_3d', type=bool, required=False, default=False, help='Directory where the screenshots will be saved.')
+    parser.add_argument('--is_3d', action="store_true", required=False, default=False, help='Directory where the screenshots will be saved.')
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parent.parent.parent
