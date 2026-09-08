@@ -334,3 +334,12 @@ results_data/*.csv            # objective, per-branch energies and energy gaps v
 ```
 
 The CSV traces are two-column (`x,y`) files: `objs.csv`, and one `energies_<label>.csv` per branch. The energy-gap traces are named after the plot that produced them: the default `all_deltas` plot (experiments 1-3) writes one file per *pair* of branches, named after the gap itself (e.g. `$\Delta\mathcal{E}(u_1,u_2)$.csv`), while the `deltas` plot (experiment 4) writes `delta_<i1>_<i2>.csv` per controlled gap. Iterations rejected by the trust region are filtered out of both the plots and the CSVs, using the flags parsed from ROL's output.
+
+## 8. License
+
+This code is released under the BSD 3-Clause License; see [LICENSE](LICENSE).
+
+Note that the runtime dependencies carry their own, separate terms — Firedrake
+and PETSc are LGPL, and ParaView is BSD-3-Clause. The Docker image built from
+[Dockerfile](Dockerfile) bundles them and is therefore governed by those terms
+as well as this one.
